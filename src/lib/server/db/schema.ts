@@ -9,7 +9,7 @@ export const users = pgTable("user", {
   username: varchar('username'),
   email: text("email").unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
-  image: text("image"),
+  image: text("image")
 })
 
 export const accounts = pgTable(

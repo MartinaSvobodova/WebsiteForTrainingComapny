@@ -1,0 +1,66 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  deploy-to-server:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout (to get docker-compose.yml)
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: github-user
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/website/
+            
+            # Export the repository name so docker-compose can use it
+            export GITHUB_REPOSITORY=${{ github.repository }}
+            
+            # Login to GHCR (using the token provided by the Action)
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull the new image
+            docker compose pull
+            
+            # Restart services (recreates containers only if image changed)
+            docker compose up -d --remove-orphans
+            
+            # Cleanup unused images to save space
+            docker image prune -f

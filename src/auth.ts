@@ -6,6 +6,7 @@ import { users } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
  
 export const { handle, signIn, signOut } = SvelteKitAuth({
+	trustHost: true,
 	adapter: DrizzleAdapter(db),
 	events: {
 		signIn: async ({user, profile, account}) => {

@@ -1,5 +1,5 @@
 import type { AdapterAccountType } from "@auth/core/adapters"
-import { pgTable, serial, integer, varchar, real, json, date, text, timestamp, primaryKey, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { uuid, pgTable, serial, integer, varchar, real, json, date, text, timestamp, primaryKey, boolean, pgEnum } from 'drizzle-orm/pg-core';
 
 export const users = pgTable("user", {
   id: text("id")
@@ -86,20 +86,21 @@ export const authenticators = pgTable(
 )
 
 export const course = pgTable('course', {
-	id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+	id: uuid('id')
+        .defaultRandom()
+        .primaryKey(),
 	title: varchar('title').notNull(),
 	price: real().notNull(),
 	shortDescription: varchar('shortDescription'),
-	image: varchar("image")
+	image: varchar("image"),
+  isPublished: boolean().notNull()
 	}
 );
 
 export const company = pgTable('company', {
-	id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+	id: uuid('id')
+        .defaultRandom()
+        .primaryKey(),
 	userId: text("user_id").references(() => users.id).notNull(),
 	name: varchar('name').notNull(),
 	vatId: varchar('vatId').notNull()
@@ -113,29 +114,33 @@ export const invoice = pgTable('invoice', {
 );
 
 export const order = pgTable('order', {
-	id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+	id: uuid('id')
+        .defaultRandom()
+        .primaryKey(),
 	userId: text("user_id").references(() => users.id).notNull(),
-	companyId: text("company_id").references(() => company.id),
-	courseId: text("course_id").references(() => course.id).notNull(),
+	companyId: uuid("company_id").references(() => company.id),
+	courseId: uuid("course_id").references(() => course.id).notNull(),
 	invoiceId: integer("invoice_id").references(() => invoice.id),
 	paymentStatus: varchar('paymentStatus').notNull()
 	}
 );
 
 export const chapter = pgTable('chapter', {
-	id: serial('id').primaryKey().notNull(),
-	courseId: text("course_id").references(() => course.id).notNull(),
+	id: uuid('id')
+        .defaultRandom()
+        .primaryKey(),
+	courseId: uuid("course_id").references(() => course.id).notNull(),
 	content: text("content"),
 	indexInCourse: integer("indexInCourse")
 	}
 );
 
 export const review = pgTable('review', {
-	id: serial('id').primaryKey().notNull(),
+	id: uuid('id')
+        .defaultRandom()
+        .primaryKey(),
 	userId: text("user_id").references(() => users.id).notNull(),
-	courseId: text("courseId").references(() => course.id).notNull(),
+	courseId: uuid("courseId").references(() => course.id).notNull(),
 	datePosted: date().notNull(),
 	stars: integer("stars"),
 	text: varchar("text")

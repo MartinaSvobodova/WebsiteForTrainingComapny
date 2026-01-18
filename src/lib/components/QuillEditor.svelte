@@ -1,16 +1,44 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, untrack } from "svelte";
 
-	let editor: HTMLDivElement;
+	let { 
+        content = "", 
+        onAutoSave,
+		chapterId = "",
+        toolbarOptions = [
+            [{ header: 1 }, { header: 2 }, "blockquote", "link", "image", "video"],
+            ["bold", "italic", "underline", "strike"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            [{ align: [] }],
+            ["clean"]
+        ] 
+    } = $props();
+
+	let quill: any;
+    let editor: HTMLDivElement;
+    let timer: ReturnType<typeof setTimeout>;
+
+    $effect(() => {
+        // We track chapterId. When it changes, we update the editor.
+        const currentId = chapterId; 
+        
+        if (quill && currentId) {
+			const newContent = untrack(() => content);
+            
+            quill.isUpdatingSilently = true;
+            quill.root.innerHTML = newContent ?? ""; 
+            quill.isUpdatingSilently = false;
+        }
+    });
 
 	// Configuration
-	export let toolbarOptions = [
+	/*export let toolbarOptions = [
 		[{ header: 1 }, { header: 2 }, "blockquote", "link", "image", "video"],
 		["bold", "italic", "underline", "strike"],
 		[{ list: "ordered" }, { list: "bullet" }],
 		[{ align: [] }],
 		["clean"]
-	];
+	];*/
 
 	async function uploadToCDN(file: File): Promise<string> {
 		console.log(`Uploading ${file.type}...`);
@@ -27,8 +55,19 @@
 	onMount(async () => {
 		const { default: Quill } = await import("quill");
 
+		(window as any).Quill = Quill;
+
+    	// 2. IMPORT properly: extract the .default property
+    	// @ts-ignore
+    	const resizeModule = await import('quill-resize-module');
+    	const QuillResize = resizeModule.default;
+
+    	// 3. REGISTER
+    	Quill.register('modules/resize', QuillResize);
+		
 		// 1. Register Custom Video Blot (so videos are <video> not <iframe>)
 		const BlockEmbed: any = Quill.import('blots/block/embed');
+
 		class VideoBlot extends BlockEmbed {
 			static create(url: string) {
 				const node = super.create();
@@ -91,11 +130,51 @@
 					}
 				},
 				resize: {
+					modules: ['DisplaySize', 'Resize', 'Keyboard'],
+					selectedClass: 'selected',
+					activeClass: 'active',
+					embedTags: ['VIDEO', 'IFRAME'],
+					parchment: {
+						image: {
+                    		attribute: ['width', 'height']
+                		},
+                		'video-file': {
+                    		attribute: ['width', 'height']
+                		}
+            		},
+					
+					onActive: function (blot, target) {
+                		// Triggered when an element is activated
+					},
+            		onInactive: function (blot, target) {
+                		// Triggered when an element is deactivated
+            		},
+					onChangeSize: function (blot, target, size) {
+                		// Triggered when element size changes
+            		}
 				}
 			},
 			theme: "snow",
 			placeholder: "Write your story..."
 		});
+
+		if (content) {
+            quill.root.innerHTML = content;
+        }
+
+        quill.on('text-change', (delta, oldDelta, source) => {
+            if (source === 'user' && !quill.isUpdatingSilently) {
+                clearTimeout(timer);
+                const idToSave = chapterId;
+                const htmlToSave = quill.root.innerHTML;
+
+                timer = setTimeout(() => {
+                    if (idToSave === chapterId) {
+                        onAutoSave(htmlToSave, idToSave);
+                    }
+                }, 1000);
+            }
+        });
 
 		// --- 4. THE FIX: PASTE LISTENER WITH CAPTURE ---
 		quill.root.addEventListener('paste', (e: ClipboardEvent) => {

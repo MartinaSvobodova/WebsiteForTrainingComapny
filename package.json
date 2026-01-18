@@ -53,6 +53,7 @@
 		"@types/sortablejs": "^1.15.9",
 		"postgres": "^3.4.7",
 		"quill": "^2.0.3",
+		"quill-resize-module": "^2.0.8",
 		"sortablejs": "^1.15.6"
 	}
 }

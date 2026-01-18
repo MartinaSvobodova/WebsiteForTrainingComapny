@@ -1,19 +1,8 @@
-/*
-import type Course from '$lib/components/Course.svelte';
-import type { PageServerLoad } from './$types';
-
-export const load: PageServerLoad = async ({locals:{postgres}}) => {
-	const course_sql = `SELECT id, title FROM course`;
-	const courses: Course[] = (await postgres.query(course_sql)).rows;
-	return {
-		courses
-	};
-};*/
-
-import type { PageServerLoad } from "./$types";
+import type { Actions, PageServerLoad } from "./$types";
 import { db } from '$lib/server/db';
-import { course, order, users } from "$lib/server/db/schema";
+import { chapter, course, order, users } from "$lib/server/db/schema";
 import { eq } from 'drizzle-orm';
+import { redirect } from "@sveltejs/kit";
 
 
 export const load: PageServerLoad = async (event) => {
@@ -44,4 +33,30 @@ export const load: PageServerLoad = async (event) => {
     });
 	
     return { courses };
-}
+};
+
+export const actions: Actions = {
+    addCourse: async ({ request, params }) => {
+		let cId = await db.insert(course)
+						   .values({title: "",
+									price: 0,
+									shortDescription: "",
+									image: "",
+									isPublished: false})
+						   .returning({id: course.id});
+		
+		let chId = cId[0].id;
+			
+		await db.insert(chapter)
+					.values({
+						courseId: chId,
+						content: null,
+						indexInCourse: 1
+					})
+					.returning({
+						id: chapter.id,
+						content: chapter.content
+		});
+        throw redirect(303, `/courses/createCourse/${chId}`);
+    }
+};

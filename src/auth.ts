@@ -16,7 +16,6 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
 				await db.update(users)
 					.set({ username: keycloakUsername })
 					.where(eq(users.id, user_id));
-				//await db.update(users).set({ name: username }).where(eq(users.id, user_id));
 			}
 	},
 	callbacks: {
@@ -45,9 +44,4 @@ export const { handle, signIn, signOut } = SvelteKitAuth({
       }
 		})
 	]
-  /*async (event) => {
-  const authOptions = {
-    providers: [Keycloak],
-  }
-  return authOptions}*/
 })

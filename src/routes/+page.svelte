@@ -9,11 +9,13 @@
 	{#each data.courses as course}
 		<Course id={course.id} title={course.title} image={course.image} price={course.price} isOwned={course.isOwned}></Course>
 	{/each}
-	<form method="POST" action="?/addCourse" use:enhance>
-    <button type="submit" class="btn-primary">
-        Add Course
-    </button>
-</form>
+	{#if data.isAdmin}
+		<form method="POST" action="?/addCourse" use:enhance>
+    		<button type="submit" class="btn-primary">
+        		Add Course
+    		</button>
+		</form>
+	{/if}
 </div>
 
 <style>

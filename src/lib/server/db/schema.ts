@@ -83,7 +83,13 @@ export const authenticators = pgTable(
       }),
     },
   ]
-)
+);
+
+export const roles = pgTable('roles', {
+  id: serial().primaryKey(),
+  roleName: text('roleName').notNull(),
+  userId: text("user_id").references(() => users.id).notNull()
+});
 
 export const course = pgTable('course', {
 	id: uuid('id')

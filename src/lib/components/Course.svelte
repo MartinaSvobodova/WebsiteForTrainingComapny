@@ -10,11 +10,11 @@
     <div>
         {title}
     </div>
-    <div>
-        {#if !isOwned}
+    {#if !isOwned}
+        <div>
             Price: {price}
-        {/if}
-    </div>
+        </div>
+    {/if}
     <div>
         {#if isOwned}
             <form action="/courses/"{id}>

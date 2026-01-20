@@ -2,6 +2,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import { db } from '$lib/server/db';
 import { chapter, course} from "$lib/server/db/schema";
 import { and, eq, gt, sql } from 'drizzle-orm';
+import { redirect } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({params}) => {
     console.log(params.id);
@@ -56,7 +57,7 @@ export const actions: Actions = {
         const data = await request.formData();
         const idToDelete = data.get('chapterId') as string;
         const indexToDelete = Number(data.get('index'));
-        const courseId = params.id; // Get the course ID from params
+        const courseId = params.id;
         await db.transaction(async (tx) => {
             await tx.delete(chapter).where(eq(chapter.id, idToDelete));
             await tx.update(chapter)
@@ -73,10 +74,10 @@ export const actions: Actions = {
         let chaptersFromDb = await db.select({
             chapterId: chapter.id, 
             content: chapter.content,
-            indexInCourse: chapter.indexInCourse // Added this for sorting
+            indexInCourse: chapter.indexInCourse
         })
         .from(chapter)
-        .where(eq(chapter.courseId, courseId)) // Match by courseId, not index
+        .where(eq(chapter.courseId, courseId))
         .orderBy(chapter.indexInCourse);
         return { 
             success: true, 
@@ -108,5 +109,19 @@ export const actions: Actions = {
             console.error("Database Save Error:", err);
             return { success: false };
         }
+    },
+    publishCourse: async ({ request, params }) => {
+        const data = await request.formData();
+        const name = data.get('courseName') as string;
+        const price = Number(data.get('coursePrice'));
+        const image = data.get('courseImage') as File;
+        await db.update(course)
+                .set({
+                    title: name,
+                    price: price,
+                    image: image.name,
+                    isPublished: true})
+                .where(eq(course.id, params.id));
+        throw redirect(303, `/`);
     }
 };

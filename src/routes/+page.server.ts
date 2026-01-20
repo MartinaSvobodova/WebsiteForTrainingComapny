@@ -1,6 +1,6 @@
 import type { Actions, PageServerLoad } from "./$types";
 import { db } from '$lib/server/db';
-import { chapter, course, order, users } from "$lib/server/db/schema";
+import { chapter, course, order, roles } from "$lib/server/db/schema";
 import { eq } from 'drizzle-orm';
 import { redirect } from "@sveltejs/kit";
 
@@ -8,7 +8,8 @@ import { redirect } from "@sveltejs/kit";
 export const load: PageServerLoad = async (event) => {
 	let session = await event.locals.auth();
 	let user_id = session?.user?.id;
-	let coursesFromDb = await db.select().from(course);
+	let coursesFromDb = await db.select().from(course).where(eq(course.isPublished, true));
+	let isAdmin = false;
 	let courses = coursesFromDb.map((c) =>({
 		id: c.id,
     	title: c.title,
@@ -18,7 +19,11 @@ export const load: PageServerLoad = async (event) => {
     	isOwned: false
 	}));
 	if (!user_id){
-		return  {courses}
+		return  {courses, isAdmin}
+	}
+	let userRole = await db.select({role: roles.roleName}).from(roles).where(eq(roles.userId, user_id));
+	if (userRole.some(r => r.role === 'admin')) {
+    	isAdmin = true;
 	}
 	let userOwned = await db.select().from(order).where(eq(order.userId, user_id))
 						.leftJoin(course, eq(order.courseId, course.id));
@@ -32,7 +37,7 @@ export const load: PageServerLoad = async (event) => {
         }
     });
 	
-    return { courses };
+    return { courses, isAdmin };
 };
 
 export const actions: Actions = {

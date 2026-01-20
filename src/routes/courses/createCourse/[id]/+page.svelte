@@ -19,8 +19,15 @@
     let currentChapterId = $state(data.information.chapters[0]?.chapterId || "");
     let selectedChapterContent = $state(data.information.sChContent || "");
 
-	let courseName = "";
-    let coursePrice = 0;
+	let courseName = $state("");
+    let coursePrice = $state(0);
+	let courseImage = $state<FileList>();
+
+	let isPublishable = $derived(
+        courseName.trim().length > 0 && 
+        coursePrice > 0 && 
+        courseImage && courseImage.length > 0
+    );
 
 	onMount(async ()=>{
 		const {Sortable} = await import("sortablejs");
@@ -40,6 +47,20 @@
             });
 		}});
 	});
+
+	function preparePublishData({ formData }) {
+        formData.append('courseName', courseName);
+        formData.append('coursePrice', coursePrice.toString());
+        
+        // Append the actual file object
+        if (courseImage && courseImage.length > 0) {
+            formData.append('courseImage', courseImage[0]);
+        }
+        
+        return async ({ result, update }) => {
+            await update(); 
+        };
+    }
 
 	async function autoSave(html: string, id: string) {
         if (!id || id === "undefined") return;
@@ -107,7 +128,16 @@
   name="price"
   required
   class="text-black"
-  bind:value={courseName}/>
+  bind:value={coursePrice}/>
+
+  <label for="image">Course image</label>
+
+  <input
+  type="file"
+  id="image"
+  name="image"
+  required
+  bind:files={courseImage}/>
 
 
 <div class="flex flex-row">
@@ -146,4 +176,8 @@
     	{/key}
 	</div>
 </div>
-<button>Publish Course</button>
+<form method="POST" action="?/publishCourse" enctype="multipart/form-data" use:enhance={preparePublishData}>
+	{#if isPublishable}
+		<button type="submit">Publish Course</button>
+	{/if}
+</form>

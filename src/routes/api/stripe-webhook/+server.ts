@@ -4,10 +4,10 @@ import { order } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(env.STRIPE_KEY);
 const endpointSecret = env.STRIPE_WEBHOOK_SECRET; 
 
 export const POST = async ({ request }) => {
+    const stripe = new Stripe(env.STRIPE_KEY);
     const body = await request.text();
     const sig = request.headers.get('stripe-signature');
 
